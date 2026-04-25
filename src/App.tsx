@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, Building, User, Info } from 'lucide-react';
+import { Send, Building, User, Info, Settings, X, Key } from 'lucide-react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { initChat, sendMessage, ChatMessage } from './gemini';
@@ -10,7 +10,14 @@ export default function App() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('groq_api_key') || '');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const saveApiKey = (key: string) => {
+    setApiKey(key);
+    localStorage.setItem('groq_api_key', key);
+  };
 
   useEffect(() => {
     const startChat = async () => {
@@ -39,7 +46,7 @@ export default function App() {
     setIsLoading(true);
 
     try {
-      const response = await sendMessage(userMessage);
+      const response = await sendMessage(userMessage, messages, apiKey);
       setMessages((prev) => [...prev, { role: 'model', text: response }]);
     } catch (error) {
       console.error("Failed to send message:", error);
@@ -73,9 +80,66 @@ export default function App() {
               <p className="text-[10px] text-amber-500/80 uppercase tracking-[0.2em] mt-1 relative left-0.5">UAE & UK Real Estate Matchmaker</p>
             </div>
           </div>
+          <button 
+            onClick={() => setShowSettings(true)}
+            className="p-2 text-zinc-400 hover:text-amber-500 hover:bg-amber-500/10 rounded-lg transition-colors border border-transparent hover:border-amber-500/20"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
         </div>
         <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-amber-500/50 to-transparent"></div>
       </header>
+
+      {/* Settings Modal */}
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-6 overflow-hidden relative"
+            >
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center space-x-2">
+                  <Key className="w-5 h-5 text-amber-500" />
+                  <h2 className="text-lg font-medium text-zinc-100">API Settings</h2>
+                </div>
+                <button onClick={() => setShowSettings(false)} className="text-zinc-500 hover:text-zinc-300">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-400 mb-2">Groq API Key</label>
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => saveApiKey(e.target.value)}
+                    placeholder="gsk_..."
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/50 transition-all"
+                  />
+                  <p className="mt-2 text-xs text-zinc-500">
+                    Your key is stored locally in your browser to process requests.
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setShowSettings(false)}
+                  className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-zinc-950 font-medium rounded-xl transition-colors"
+                >
+                  Save & Close
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Chat Area */}
       <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] bg-repeat relative">
